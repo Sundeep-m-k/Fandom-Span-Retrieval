@@ -1,0 +1,43 @@
+span_id:
+  enabled: true
+  domain: "money-heist"
+
+  text_dir: "data/raw/fandom_html/${domain}"
+  spans_csv_path: "data/processed/${domain}/span_links_${domain}.csv"
+  paragraph_master_csv: "data/processed/${domain}/paragraph_span_links_${domain}.csv"
+
+  token_dataset_dir: "data/processed/${domain}/span_id"
+  train_file: "${token_dataset_dir}/train.jsonl"
+  dev_file:   "${token_dataset_dir}/dev.jsonl"
+  test_file:  "${token_dataset_dir}/test.jsonl"
+
+  log_dir: "data/logs/span_identification/${domain}"
+  level: "paragraph"  # options: "paragraph", "article"
+  normalize_punctuation: false    # true or false
+
+  label_scheme: "BILOU"
+  min_spans_per_paragraph: 1
+  max_seq_length: 512
+
+  model_name: "bert-base-uncased"
+  num_labels: 5
+  dropout: 0.1
+
+  train:
+    do_build_paragraph_master: true
+    do_preprocess: true
+    do_train: true
+    do_eval: true
+
+    batch_size: 16
+    learning_rate: 2e-5
+    num_epochs: 20
+    weight_decay: 0.01
+    warmup_ratio: 0.1
+    gradient_accumulation_steps: 1
+    seed: 42
+
+  logging:
+    use_wandb: true
+    wandb_project: "fandom-span-id"
+    wandb_run_name: "${domain}_deberta_bilou_paragraph"

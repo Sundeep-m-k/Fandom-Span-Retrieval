@@ -1,8 +1,0 @@
-sections_dir: /data/sundeep/Fandom_SI/data/interim
-out_dir: /data/sundeep/Fandom_SI/data/processed_span_identi
-link_types_include: ["internal", "external"]
-validate_anchor_text: true
-section_separator: "\n\n"
-keep_internal_only: true
-drop_external_sections: true
-

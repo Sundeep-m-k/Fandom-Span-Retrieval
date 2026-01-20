@@ -69,26 +69,17 @@ def load_scraping_config():
 
     return cfg, project_root
 
-
-# ---------------------- LOGGING SETUP -----------------------
-
-
 def create_logger(project_root: Path, script_name: str = "01_scrape_fandom_pages"):
     log_dir = project_root / "data" / "logs" / "scraping"
     log_dir.mkdir(parents=True, exist_ok=True)
-
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     log_path = log_dir / f"{timestamp}_{script_name}.log"
-
     logger = logging.getLogger(script_name)
     logger.setLevel(logging.INFO)
-
     if logger.hasHandlers():
         logger.handlers.clear()
-
     fh = logging.FileHandler(log_path, encoding="utf-8")
     fh.setLevel(logging.INFO)
-
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)
 
@@ -98,13 +89,10 @@ def create_logger(project_root: Path, script_name: str = "01_scrape_fandom_pages
     )
     fh.setFormatter(fmt)
     ch.setFormatter(fmt)
-
     logger.addHandler(fh)
     logger.addHandler(ch)
-
     logger.info(f"Logger initialized for {script_name}")
     logger.info(f"Log file: {log_path}")
-
     return logger, log_path
 
 
