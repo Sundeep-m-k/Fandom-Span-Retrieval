@@ -121,4 +121,4 @@ models/
 # Keep logs, but ignore oversized CSV artifacts
 ############################################
 data/logs/**/**/*.csv
-
+experimenents/span_ids/**/**/

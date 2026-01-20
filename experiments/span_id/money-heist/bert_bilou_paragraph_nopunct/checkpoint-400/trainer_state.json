@@ -1,0 +1,126 @@
+{
+  "best_global_step": 400,
+  "best_metric": 0.055735357105731964,
+  "best_model_checkpoint": "/data/sundeep/Fandom_SI/experiments/span_id/money-heist/bert_bilou_paragraph_nopunct/checkpoint-400",
+  "epoch": 3.669724770642202,
+  "eval_steps": 100,
+  "global_step": 400,
+  "is_hyper_param_search": false,
+  "is_local_process_zero": true,
+  "is_world_process_zero": true,
+  "log_history": [
+    {
+      "epoch": 0.45871559633027525,
+      "grad_norm": 1.8574799299240112,
+      "learning_rate": 1.942507645259939e-05,
+      "loss": 0.5647,
+      "step": 50
+    },
+    {
+      "epoch": 0.9174311926605505,
+      "grad_norm": 2.832824945449829,
+      "learning_rate": 1.8813455657492356e-05,
+      "loss": 0.2124,
+      "step": 100
+    },
+    {
+      "epoch": 0.9174311926605505,
+      "eval_loss": 0.1421087384223938,
+      "eval_runtime": 0.2586,
+      "eval_samples_per_second": 317.115,
+      "eval_steps_per_second": 42.54,
+      "eval_token_acc": 0.9505668336409174,
+      "step": 100
+    },
+    {
+      "epoch": 1.3761467889908257,
+      "grad_norm": 0.41118210554122925,
+      "learning_rate": 1.8201834862385323e-05,
+      "loss": 0.1167,
+      "step": 150
+    },
+    {
+      "epoch": 1.834862385321101,
+      "grad_norm": 0.7893891334533691,
+      "learning_rate": 1.7590214067278287e-05,
+      "loss": 0.0918,
+      "step": 200
+    },
+    {
+      "epoch": 1.834862385321101,
+      "eval_loss": 0.07055559754371643,
+      "eval_runtime": 0.2833,
+      "eval_samples_per_second": 289.399,
+      "eval_steps_per_second": 38.822,
+      "eval_token_acc": 0.9744265752702347,
+      "step": 200
+    },
+    {
+      "epoch": 2.293577981651376,
+      "grad_norm": 0.8026760220527649,
+      "learning_rate": 1.6978593272171257e-05,
+      "loss": 0.069,
+      "step": 250
+    },
+    {
+      "epoch": 2.7522935779816513,
+      "grad_norm": 2.0251145362854004,
+      "learning_rate": 1.6366972477064224e-05,
+      "loss": 0.0548,
+      "step": 300
+    },
+    {
+      "epoch": 2.7522935779816513,
+      "eval_loss": 0.06360413879156113,
+      "eval_runtime": 0.2531,
+      "eval_samples_per_second": 324.032,
+      "eval_steps_per_second": 43.468,
+      "eval_token_acc": 0.9764039019245979,
+      "step": 300
+    },
+    {
+      "epoch": 3.2110091743119265,
+      "grad_norm": 0.6582791209220886,
+      "learning_rate": 1.5755351681957187e-05,
+      "loss": 0.0467,
+      "step": 350
+    },
+    {
+      "epoch": 3.669724770642202,
+      "grad_norm": 4.318437099456787,
+      "learning_rate": 1.5143730886850154e-05,
+      "loss": 0.0441,
+      "step": 400
+    },
+    {
+      "epoch": 3.669724770642202,
+      "eval_loss": 0.055735357105731964,
+      "eval_runtime": 0.2624,
+      "eval_samples_per_second": 312.557,
+      "eval_steps_per_second": 41.928,
+      "eval_token_acc": 0.9823358818876878,
+      "step": 400
+    }
+  ],
+  "logging_steps": 50,
+  "max_steps": 1635,
+  "num_input_tokens_seen": 0,
+  "num_train_epochs": 15,
+  "save_steps": 100,
+  "stateful_callbacks": {
+    "TrainerControl": {
+      "args": {
+        "should_epoch_stop": false,
+        "should_evaluate": false,
+        "should_log": false,
+        "should_save": true,
+        "should_training_stop": false
+      },
+      "attributes": {}
+    }
+  },
+  "total_flos": 470230046684970.0,
+  "train_batch_size": 8,
+  "trial_name": null,
+  "trial_params": null
+}

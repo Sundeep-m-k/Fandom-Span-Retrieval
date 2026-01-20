@@ -12,22 +12,24 @@ sys.path.insert(0, str(PROJECT_ROOT))
 """
 14_prepare_span_id_dataset_paragraph_nopunct.py (PIPELINE)
 
-Input (domain-dependent):
-  /data/sundeep/Fandom_SI/data/interim/<domain>/sections_parsed_<domain>_by_page/*.jsonl
+NEW ENGINEERING kept:
+- Input:  data/interim/<domain>/sections_parsed_<domain>_by_page/*.jsonl
+- Output: data/span_identification/<domain>/train<suffix>.jsonl etc.
+- Logs:   data/logs/span_identification/<domain>/14_prepare_span_id_dataset_<domain>.log
+- Reads domain from pipeline config.
 
-Outputs (domain-scoped):
-  data/span_identification/<domain>/train<suffix>.jsonl
-  data/span_identification/<domain>/dev<suffix>.jsonl
-  data/span_identification/<domain>/test<suffix>.jsonl
-  data/span_identification/<domain>/stats<suffix>.json
+LEGACY BEHAVIOR adapted (to reproduce "old" dataset behavior/metrics):
+(A) Split bucket: old-style hash(page_key)%100
+    - Option 1: set env PYTHONHASHSEED=0 and use real Python hash() (closest match)
+    - Option 2: stable "hash-like" bucket using md5 -> int -> %100 (reproducible across machines)
+(B) Page offset cursor: legacy cursor update that adds section_sep after every kept section,
+    which can create the same offset behavior as the old script.
 
-Logs (domain-scoped):
-  data/logs/span_identification/<domain>/14_prepare_span_id_dataset_<domain>.log
-
-Notes:
-- Deterministic split by md5(page_key) => stable across machines/runs.
-- Offset-safe page build: separator offsets counted only BETWEEN kept sections.
-- Optional punctuation removal with span remapping.
+Use flags:
+  --split_mode stable  (default)  : reproducible "hash-like" via md5
+  --split_mode legacy_hash        : uses Python hash(); set PYTHONHASHSEED=0 for reproducibility
+  --offset_mode new               : correct separator accounting (recommended for rigor)
+  --offset_mode legacy            : emulate old cursor behavior (recommended to match old numbers)
 """
 
 import argparse
@@ -45,12 +47,28 @@ from src.span_identifier.prep.io_jsonl import write_jsonl, write_json
 
 
 # ----------------------------
-# Deterministic split
+# Deterministic / legacy split
 # ----------------------------
 
-def stable_bucket(page_key: str) -> str:
+def bucket_stable_hashlike(page_key: str) -> str:
+    """
+    Stable replacement that mimics 'hash()%100' distribution but is deterministic.
+    """
     h = hashlib.md5(page_key.encode("utf-8")).hexdigest()
     v = int(h[:8], 16) % 100
+    if v < 80:
+        return "train"
+    if v < 90:
+        return "dev"
+    return "test"
+
+
+def bucket_legacy_python_hash(page_key: str) -> str:
+    """
+    Old behavior: abs(hash(page_key)) % 100
+    NOTE: This is ONLY reproducible if PYTHONHASHSEED is fixed (e.g., PYTHONHASHSEED=0).
+    """
+    v = abs(hash(page_key)) % 100
     if v < 80:
         return "train"
     if v < 90:
@@ -114,6 +132,9 @@ class GlobalStats:
 
     output_suffix: str
 
+    split_mode: str
+    offset_mode: str
+
 
 # ----------------------------
 # Config helpers
@@ -125,11 +146,6 @@ def load_yaml(path: Path) -> Dict[str, Any]:
 
 
 def load_domain_from_pipeline_config(pipeline_cfg_path: Path) -> str:
-    """
-    Reads domain from configs/pipeline_span_id.yaml
-    Expected format:
-      domain: money-heist
-    """
     if not pipeline_cfg_path.exists():
         raise FileNotFoundError(f"Missing pipeline config: {pipeline_cfg_path}")
 
@@ -225,7 +241,7 @@ def remap_spans(old_spans: List[Dict[str, Any]], old2new: List[int]) -> Tuple[Li
 
 
 # ----------------------------
-# Page build (offset-safe)
+# Page build (two modes)
 # ----------------------------
 
 def build_page_text_and_internal_spans(
@@ -236,6 +252,7 @@ def build_page_text_and_internal_spans(
     drop_external_sections: bool,
     logger,
     page_key: str,
+    offset_mode: str,  # "new" or "legacy"
 ) -> Tuple[str, List[Dict[str, Any]], Dict[str, int]]:
     texts: List[str] = []
     spans: List[Dict[str, Any]] = []
@@ -256,14 +273,26 @@ def build_page_text_and_internal_spans(
 
         sec_text = rec.get("text") or ""
         sec_links = rec.get("links") or []
-
-        # count separator only BETWEEN kept sections
-        if texts:
-            cursor += len(section_sep)
-
-        texts.append(sec_text)
-        sec_base = cursor
         sec_len = len(sec_text)
+
+        # -----------------------------
+        # OFFSET MODE SWITCH
+        # -----------------------------
+        if offset_mode == "new":
+            # Correct: add sep length only between kept sections
+            if texts:
+                cursor += len(section_sep)
+            texts.append(sec_text)
+            sec_base = cursor
+            cursor += sec_len
+        elif offset_mode == "legacy":
+            # Legacy: emulate old cursor logic (adds sep after every kept section)
+            texts.append(sec_text)
+            sec_base = cursor
+            cursor += sec_len
+            cursor += len(section_sep)
+        else:
+            raise ValueError(f"Unknown offset_mode: {offset_mode}")
 
         for link in sec_links:
             total_links += 1
@@ -301,8 +330,6 @@ def build_page_text_and_internal_spans(
             kept_links += 1
             spans.append({"start": sec_base + s, "end": sec_base + e, "type": "internal"})
 
-        cursor += sec_len
-
     page_text = section_sep.join(texts)
     page_len = len(page_text)
 
@@ -313,6 +340,7 @@ def build_page_text_and_internal_spans(
         if 0 <= s < e <= page_len:
             clipped.append(sp)
         else:
+            # In legacy mode this can happen more often; keep warning for traceability
             logger.warning(f"Span out of range | page={page_key} | span=({s},{e}) | page_len={page_len}")
 
     st = {
@@ -372,28 +400,25 @@ def main():
     t0 = time.perf_counter()
 
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default=str(PROJECT_ROOT / "configs" / "span_id_prep.yaml"),
-                    help="configs/span_id_prep.yaml")
-    ap.add_argument("--pipeline_config", default=str(PROJECT_ROOT / "configs" / "pipeline_span_id.yaml"),
-                    help="configs/pipeline_span_id.yaml (must contain: domain: <slug>)")
-    ap.add_argument("--out_suffix", default="_paragraph_nopunct",
-                    help="Suffix appended to output filenames (NOT directories)")
-    ap.add_argument("--remove_punct", action="store_true",
-                    help="Remove punctuation from paragraph text and remap spans")
-    ap.add_argument("--para_sep", default="\n\n",
-                    help="Paragraph separator used for splitting")
-    ap.add_argument("--require_spans", action="store_true",
-                    help="If set, only keep paragraphs with >=1 span")
+    ap.add_argument("--config", default=str(PROJECT_ROOT / "configs" / "span_id_prep.yaml"))
+    ap.add_argument("--pipeline_config", default=str(PROJECT_ROOT / "configs" / "pipeline_span_id.yaml"))
+    ap.add_argument("--out_suffix", default="_paragraph_nopunct")
+    ap.add_argument("--remove_punct", action="store_true")
+    ap.add_argument("--para_sep", default="\n\n")
+    ap.add_argument("--require_spans", action="store_true")
+
+    # NEW knobs to emulate old behavior
+    ap.add_argument("--split_mode", choices=["stable", "legacy_hash"], default="stable",
+                    help="stable=md5-based; legacy_hash=python hash (set PYTHONHASHSEED=0 to reproduce).")
+    ap.add_argument("--offset_mode", choices=["new", "legacy"], default="legacy",
+                    help="legacy emulates old cursor/sep behavior; new is offset-correct.")
+
     args = ap.parse_args()
 
-    # Resolve domain ONLY from pipeline_span_id.yaml
     PIPELINE_CFG = Path(args.pipeline_config)
     domain = load_domain_from_pipeline_config(PIPELINE_CFG)
 
-    # INPUT: data/interim/<domain>/sections_parsed_<domain>_by_page
     SECTIONS_DIR = PROJECT_ROOT / "data" / "interim" / domain / f"sections_parsed_{domain}_by_page"
-
-    # OUTPUT + LOG: as you specified
     OUT_DIR = PROJECT_ROOT / "data" / "span_identification" / domain
     LOG_DIR = PROJECT_ROOT / "data" / "logs" / "span_identification" / domain
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -405,8 +430,8 @@ def main():
     logger.info(f"PIPELINE_CFG: {PIPELINE_CFG}")
     logger.info(f"SECTIONS_DIR: {SECTIONS_DIR}")
     logger.info(f"OUT_DIR: {OUT_DIR}")
+    logger.info(f"split_mode={args.split_mode} | offset_mode={args.offset_mode}")
 
-    # Load prep config knobs
     cfg_path = Path(args.config)
     if not cfg_path.exists():
         raise FileNotFoundError(f"Missing span prep config: {cfg_path}")
@@ -416,16 +441,6 @@ def main():
     section_sep = str(cfg.get("section_separator", "\n\n"))
     keep_internal_only = bool(cfg.get("keep_internal_only", True))
     drop_external_sections = bool(cfg.get("drop_external_sections", True))
-
-    logger.info("Config knobs:")
-    logger.info(f"  validate_anchor_text={validate_anchor_text}")
-    logger.info(f"  section_separator={repr(section_sep)}")
-    logger.info(f"  keep_internal_only={keep_internal_only}")
-    logger.info(f"  drop_external_sections={drop_external_sections}")
-    logger.info(f"  para_sep={repr(args.para_sep)}")
-    logger.info(f"  remove_punct={bool(args.remove_punct)}")
-    logger.info(f"  require_spans={bool(args.require_spans)}")
-    logger.info(f"  out_suffix={args.out_suffix}")
 
     if not SECTIONS_DIR.exists():
         raise FileNotFoundError(f"Sections dir not found: {SECTIONS_DIR}")
@@ -469,12 +484,16 @@ def main():
             drop_external_sections=drop_external_sections,
             logger=logger,
             page_key=page_key,
+            offset_mode=args.offset_mode,
         )
 
         paras = split_paragraphs_with_offsets(page_text, para_sep=args.para_sep)
         total_paras += len(paras)
 
-        bucket = stable_bucket(page_key)
+        if args.split_mode == "stable":
+            bucket = bucket_stable_hashlike(page_key)
+        else:
+            bucket = bucket_legacy_python_hash(page_key)
 
         kept_here = 0
         dropped_here_punct = 0
@@ -578,6 +597,8 @@ def main():
         remove_punct=bool(args.remove_punct),
         total_spans_dropped_after_punct=int(total_spans_dropped_after_punct),
         output_suffix=suf,
+        split_mode=args.split_mode,
+        offset_mode=args.offset_mode,
     )
     write_json(str(stats_path), {"summary": asdict(gs), "per_page": per_page_stats})
 

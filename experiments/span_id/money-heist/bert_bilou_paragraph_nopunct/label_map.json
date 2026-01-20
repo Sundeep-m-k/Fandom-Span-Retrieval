@@ -1,0 +1,40 @@
+{
+  "domain": "money-heist",
+  "data_dir": "/data/sundeep/Fandom_SI/data/span_identification/money-heist",
+  "suffix": "_paragraph_nopunct",
+  "train_file": "/data/sundeep/Fandom_SI/data/span_identification/money-heist/train_paragraph_nopunct.jsonl",
+  "dev_file": "/data/sundeep/Fandom_SI/data/span_identification/money-heist/dev_paragraph_nopunct.jsonl",
+  "label_map": {
+    "O": 0,
+    "B-INTERNAL": 1,
+    "I-INTERNAL": 2,
+    "L-INTERNAL": 3,
+    "U-INTERNAL": 4
+  },
+  "id2label": {
+    "0": "O",
+    "1": "B-INTERNAL",
+    "2": "I-INTERNAL",
+    "3": "L-INTERNAL",
+    "4": "U-INTERNAL"
+  },
+  "model_name": "bert-base-uncased",
+  "max_length": 512,
+  "train_config": {
+    "lr": "2e-5",
+    "batch_size": 8,
+    "eval_batch_size": 8,
+    "epochs": 15,
+    "fp16": true,
+    "logging_steps": 50,
+    "eval_steps": 100,
+    "save_steps": 100,
+    "save_total_limit": 2,
+    "load_best_model_at_end": true,
+    "metric_for_best_model": "eval_loss",
+    "greater_is_better": false,
+    "report_to": [
+      "none"
+    ]
+  }
+}
