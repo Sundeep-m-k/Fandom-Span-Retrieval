@@ -120,5 +120,5 @@ models/
 ############################################
 # Keep logs, but ignore oversized CSV artifacts
 ############################################
-data/logs/**/*.csv
+data/logs/**/**/*.csv
 
