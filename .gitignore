@@ -1,0 +1,120 @@
+############################################
+# Python
+############################################
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+pip-wheel-metadata/
+
+############################################
+# Virtual Environments
+############################################
+.env
+.venv
+venv/
+ENV/
+env/
+conda-env/
+anaconda3/
+
+############################################
+# IDE / Editor
+############################################
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.tmp
+*.bak
+.DS_Store
+
+############################################
+# Jupyter
+############################################
+.ipynb_checkpoints/
+
+############################################
+# Logs (KEEP logs, ignore others in data/)
+############################################
+data/*
+!data/logs/
+!data/logs/**
+
+############################################
+# Large Data Artifacts
+############################################
+data/raw/
+data/processed/
+data/intermediate/
+data/cache/
+data/faiss/
+data/indices/
+data/embeddings/
+data/dumps/
+
+############################################
+# Model Checkpoints & Training Outputs
+############################################
+models/**/checkpoints/
+models/**/runs/
+models/**/wandb/
+models/**/tensorboard/
+models/**/logs/
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.safetensors
+
+############################################
+# Experiment Outputs
+############################################
+experiments/**/outputs/
+experiments/**/predictions/
+experiments/**/metrics/
+experiments/**/tmp/
+
+############################################
+# Evaluation Artifacts
+############################################
+eval/
+results/
+metrics/
+predictions/
+
+############################################
+# FAISS / Vector DB
+############################################
+*.faiss
+*.index
+*.ivf
+*.pq
+*.hnsw
+
+############################################
+# Temporary / Runtime
+############################################
+tmp/
+temp/
+.cache/
+.cache/*
+*.log
+
+############################################
+# OS / Misc
+############################################
+Thumbs.db
+ehthumbs.db
+*.lock
+############################################
+# Models (ignore everything)
+############################################
+models/
+

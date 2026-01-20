@@ -1,0 +1,46 @@
+section,metric,value
+(A) Pool-only reranker,n_queries,67
+(A) Pool-only reranker,Recall@1,0.776119
+(A) Pool-only reranker,Recall@3,0.970149
+(A) Pool-only reranker,Recall@5,0.985075
+(A) Pool-only reranker,Recall@10,1.000000
+(A) Pool-only reranker,Recall@100,1.000000
+(A) Pool-only reranker,Recall@1000,1.000000
+(A) Pool-only reranker,MRR@10,0.870896
+(A) Pool-only reranker,NDCG@10,0.903418
+(B) True retrieval FAISS [SPAN-HIT],n_queries,62
+(B) True retrieval FAISS [SPAN-HIT],Recall@1,0.306452
+(B) True retrieval FAISS [SPAN-HIT],Recall@3,0.306452
+(B) True retrieval FAISS [SPAN-HIT],Recall@5,0.338710
+(B) True retrieval FAISS [SPAN-HIT],Recall@10,0.403226
+(B) True retrieval FAISS [SPAN-HIT],Recall@100,1.000000
+(B) True retrieval FAISS [SPAN-HIT],Recall@1000,1.000000
+(B) True retrieval FAISS [SPAN-HIT],MRR@10,0.321525
+(B) True retrieval FAISS [SPAN-HIT],NDCG@10,0.339803
+(B) True retrieval FAISS [ARTICLE-HIT],n_queries,67
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@1,0.283582
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@3,0.283582
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@5,0.432836
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@10,0.597015
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@100,1.000000
+(B) True retrieval FAISS [ARTICLE-HIT],Recall@1000,1.000000
+(B) True retrieval FAISS [ARTICLE-HIT],MRR@10,0.336514
+(B) True retrieval FAISS [ARTICLE-HIT],NDCG@10,0.395611
+(C) True retrieval FAISS+RERANK [SPAN-HIT],n_queries,62
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@1,0.274194
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@3,0.435484
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@5,0.500000
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@10,0.661290
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@100,1.000000
+(C) True retrieval FAISS+RERANK [SPAN-HIT],Recall@1000,1.000000
+(C) True retrieval FAISS+RERANK [SPAN-HIT],MRR@10,0.391635
+(C) True retrieval FAISS+RERANK [SPAN-HIT],NDCG@10,0.455164
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],n_queries,67
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@1,0.253731
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@3,0.417910
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@5,0.611940
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@10,0.955224
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@100,1.000000
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],Recall@1000,1.000000
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],MRR@10,0.426617
+(C) True retrieval FAISS+RERANK [ARTICLE-HIT],NDCG@10,0.549133

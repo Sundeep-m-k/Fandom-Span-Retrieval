@@ -1,0 +1,9 @@
+metric,faiss
+Recall@1,0.112150
+Recall@3,0.345794
+Recall@5,0.411215
+Recall@10,0.728972
+Recall@50,0.943925
+Recall@100,0.943925
+Recall@1000,0.943925
+MRR@TOP_K,0.285152

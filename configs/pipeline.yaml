@@ -1,0 +1,145 @@
+pipeline_name: fandom_span_retrieval
+project_root: /data/sundeep/Fandom_SI
+
+steps:
+  # ---------------------------
+  # 01_Data_processing & Indexing
+  # ---------------------------
+  - id: 00_generate_urls
+    name: Generate Fandom URLs
+    script: "scripts/01_Data_processing & Indexing/00_generate_urls.py"
+    description: Generate the list of article URLs to scrape.
+    depends_on: []
+
+  - id: 01_scrape_fandom_pages
+    name: Scrape Fandom pages
+    script: "scripts/01_Data_processing & Indexing/01_scrape_fandom_pages.py"
+    description: Download raw HTML pages from Fandom.
+    depends_on:
+      - 00_generate_urls
+
+  - id: 02_parse_html_to_sections
+    name: Parse HTML → sections
+    script: "scripts/01_Data_processing & Indexing/02_parse_html_to_sections.py"
+    description: Parse HTML into clean text sections + links.
+    depends_on:
+      - 01_scrape_fandom_pages
+
+  - id: 03_build_spans_from_sections
+    name: Build spans from sections
+    script: "scripts/01_Data_processing & Indexing/03_build_spans_from_sections.py"
+    description: Chunk sections into retrieval spans and span-links.
+    depends_on:
+      - 02_parse_html_to_sections
+
+  - id: 04_compute_span_embeddings
+    name: Compute span embeddings
+    script: "scripts/01_Data_processing & Indexing/04_compute_span_embeddings.py"
+    description: Encode spans with a SentenceTransformer model.
+    depends_on:
+      - 03_build_spans_from_sections
+
+  - id: 05_build_faiss_index
+    name: Build FAISS index
+    script: "scripts/01_Data_processing & Indexing/05_build_faiss_index.py"
+    description: Build FAISS index over span embeddings.
+    depends_on:
+      - 04_compute_span_embeddings
+
+  # ---------------------------
+  # 02_Query_Generation
+  # ---------------------------
+  - id: 06_build_anchor_queries
+    name: Build anchor queries
+    script: "scripts/02_Query_Generation/06_build_anchor_queries.py"
+    description: Build article-level queries from internal links.
+    depends_on:
+      - 03_build_spans_from_sections
+
+  # ---------------------------
+  # 03_Article_level_Retrieval_Pipeline
+  # ---------------------------
+  - id: 07_eval_article_retrieval
+    name: Eval article-level FAISS
+    script: "scripts/03_Article_level_Retrieval_Pipeline/07_eval_article_retrieval.py"
+    description: Evaluate article-level retrieval using FAISS only.
+    depends_on:
+      - 04_compute_span_embeddings
+      - 06_build_anchor_queries
+
+  - id: 08_train_article_reranker
+    name: Train article reranker
+    script: "scripts/03_Article_level_Retrieval_Pipeline/08_train_article_reranker.py"
+    description: Train cross-encoder reranker at article level.
+    depends_on:
+      - 06_build_anchor_queries
+      - 03_build_spans_from_sections
+
+  - id: 09_eval_article_reranker
+    name: Eval article reranker vs FAISS
+    script: "scripts/03_Article_level_Retrieval_Pipeline/09_eval_article_reranker.py"
+    description: Compare article-level FAISS vs reranker.
+    depends_on:
+      - 07_eval_article_retrieval
+      - 08_train_article_reranker
+
+  # ---------------------------
+  # 04_Span_level_Retrieval_Pipeline
+  # ---------------------------
+  - id: 10_build_span_reranker_dataset
+    name: Build span reranker dataset
+    script: "scripts/04_Span_level_Retrieval_Pipeline/10_build_span_reranker_dataset.py"
+    description: Build span-level reranker train/dev/test JSONL.
+    depends_on:
+      - 03_build_spans_from_sections
+      - 04_compute_span_embeddings
+      - 05_build_faiss_index
+
+  - id: 11_train_span_reranker
+    name: Train span reranker
+    script: "scripts/04_Span_level_Retrieval_Pipeline/11_train_span_reranker.py"
+    description: Train cross-encoder reranker on span-level pairs.
+    depends_on:
+      - 10_build_span_reranker_dataset
+
+  - id: 12_eval_span_reranker
+    name: Eval span reranker
+    script: "scripts/04_Span_level_Retrieval_Pipeline/12_eval_span_reranker.py"
+    description: Evaluate span reranker ranking metrics (Recall, MRR, NDCG).
+    depends_on:
+      - 11_train_span_reranker
+
+  - id: 13_run_demo_span_server
+    name: Run span demo server
+    script: "scripts/04_Span_level_Retrieval_Pipeline/13_run_demo_span_server.py"
+    description: Interactive console demo for span-level retrieval.
+    depends_on:
+      - 05_build_faiss_index
+      - 11_train_span_reranker
+  - id: 14_prepare_span_id_dataset
+    name: Prepare span-id dataset (HTML offsets → plain spans)
+    script: "scripts/05_Span_Identification/14_prepare_span_id_dataset.py"
+    description: Build model-agnostic JSONL with plain text + char spans for hyperlinks.
+    depends_on:
+      - 02_parse_html_to_sections
+
+  - id: 15_train_span_identifier
+    name: Train span identifier (token classification)
+    script: "scripts/05_Span_Identification/15_train_span_identifier.py"
+    description: Train a HF token classification model with BILOU labels.
+    depends_on:
+      - 14_prepare_span_id_dataset
+
+  - id: 16_eval_span_identifier
+    name: Evaluate span identifier
+    script: "scripts/05_Span_Identification/16_eval_span_identifier.py"
+    description: Evaluate token + span F1 on dev/test.
+    depends_on:
+      - 15_train_span_identifier
+
+  - id: 17_predict_span_identifier
+    name: Predict hyperlinks on new pages (optional)
+    script: "scripts/05_Span_Identification/17_predict_span_identifier.py"
+    description: Run inference and save predicted spans/links.
+    depends_on:
+      - 15_train_span_identifier

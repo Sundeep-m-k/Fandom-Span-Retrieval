@@ -1,0 +1,24 @@
+name: fandom-span
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - pandas
+  - requests
+  - pyyaml
+  - beautifulsoup4
+  - lxml
+  - tqdm
+  - jupyter
+  - ipykernel
+  - pytorch
+  - torchvision
+  - torchaudio
+
+  - pip:
+      - sentence-transformers
