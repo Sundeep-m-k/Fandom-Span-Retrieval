@@ -117,4 +117,8 @@ ehthumbs.db
 # Models (ignore everything)
 ############################################
 models/
+############################################
+# Keep logs, but ignore oversized CSV artifacts
+############################################
+data/logs/**/*.csv
 
