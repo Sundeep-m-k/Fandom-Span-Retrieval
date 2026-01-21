@@ -1,5 +1,2 @@
-base_url: "https://harrypotter.fandom.com"
-start_url: "https://harrypotter.fandom.com/wiki/Special:AllPages"
-
-
-
+base_url: "https://chernobyl-hbo.fandom.com/"
+start_url: "https://chernobyl-hbo.fandom.com/wiki/Special:AllPages"

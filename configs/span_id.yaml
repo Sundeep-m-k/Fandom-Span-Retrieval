@@ -5,6 +5,8 @@ span_id:
   text_dir: "data/raw/fandom_html/${domain}"
   spans_csv_path: "data/processed/${domain}/span_links_${domain}.csv"
   paragraph_master_csv: "data/processed/${domain}/paragraph_span_links_${domain}.csv"
+  results_dir: "results/span_identification"
+  results_csv: "${results_dir}/all_experiments.csv"
 
   token_dataset_dir: "data/processed/${domain}/span_id"
   train_file: "${token_dataset_dir}/train.jsonl"
@@ -38,6 +40,6 @@ span_id:
     seed: 42
 
   logging:
-    use_wandb: true
+    use_wandb: false
     wandb_project: "fandom-span-id"
     wandb_run_name: "${domain}_deberta_bilou_paragraph"

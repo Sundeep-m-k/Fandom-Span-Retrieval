@@ -7,7 +7,7 @@ from pathlib import Path
 def run_experiment(level, normalize_punct, domain="money-heist"):
     """Run one experiment configuration."""
     
-    config_path = Path("config/span_id.yaml")
+    config_path = Path("configs/span_id.yaml")
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
     
@@ -15,10 +15,8 @@ def run_experiment(level, normalize_punct, domain="money-heist"):
     cfg["span_id"]["normalize_punctuation"] = normalize_punct
     
     exp_name = f"{level}_{'punc' if normalize_punct else 'no_punc'}"
-    cfg["span_id"]["token_dataset_dir"] = f"data/processed/{domain}/span_id_{exp_name}"
-    cfg["span_id"]["logging"]["wandb_run_name"] = f"{domain}_{exp_name}"
-    
-    temp_cfg_path = Path(f"config/temp_{exp_name}.yaml")
+    cfg["span_id"]["token_dataset_dir"] = f"data/processed/{domain}/span_id_{exp_name}"    
+    temp_cfg_path = Path(f"configs/temp_{exp_name}.yaml")
     with open(temp_cfg_path, "w") as f:
         yaml.dump(cfg, f)
     

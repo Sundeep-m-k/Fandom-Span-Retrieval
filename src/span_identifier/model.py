@@ -18,7 +18,55 @@ from src.utils.logging_utils import create_logger
 from src.span_identifier.preprocess import BILOU_LABELS, LABEL2ID
 
 ID2LABEL = {v: k for k, v in LABEL2ID.items()}
+import csv
+from datetime import datetime
 
+def log_results_to_csv(span_cfg: dict, metrics: dict):
+    """
+    Append experiment results to CSV with configuration details.
+    """
+    results_dir = Path(span_cfg.get("results_dir", "results/span_identification"))
+    results_dir.mkdir(parents=True, exist_ok=True)
+    
+    results_csv = Path(span_cfg.get("results_csv", results_dir / "all_experiments.csv"))
+    
+    # Build experiment name
+    domain = span_cfg.get("domain", "unknown")
+    model_name = span_cfg.get("model_name", "bert-base-uncased").split("/")[-1]  # just model name
+    level = span_cfg.get("level", "paragraph")
+    normalize_punct = span_cfg.get("normalize_punctuation", False)
+    punc_str = "punc" if normalize_punct else "no_punc"
+    
+    exp_name = f"{domain}_{model_name}_{level}_{punc_str}"
+    
+    # Extract metrics
+    row = {
+        "experiment_name": exp_name,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "domain": domain,
+        "model": model_name,
+        "level": level,
+        "normalize_punctuation": normalize_punct,
+        "eval_f1": metrics.get("eval_f1_seqeval", metrics.get("eval_f1", 0.0)),
+        "eval_precision": metrics.get("eval_precision_seqeval", metrics.get("eval_precision", 0.0)),
+        "eval_recall": metrics.get("eval_recall_seqeval", metrics.get("eval_recall", 0.0)),
+        "eval_loss": metrics.get("eval_loss", 0.0),
+        "num_epochs": span_cfg["train"].get("num_epochs", 0),
+        "learning_rate": span_cfg["train"].get("learning_rate", 0.0),
+        "batch_size": span_cfg["train"].get("batch_size", 0),
+    }
+    
+    # Check if file exists
+    file_exists = results_csv.exists()
+    
+    # Write to CSV
+    with open(results_csv, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=row.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(row)
+    
+    return exp_name
 
 def _load_jsonl(path: Path) -> Dataset:
     rows: List[Dict[str, Any]] = []
@@ -192,3 +240,7 @@ def evaluate_model_from_cfg(span_cfg: dict):
     logger.info(f"Test examples: {len(test_ds)}")
     metrics = trainer.evaluate(eval_dataset=test_ds)
     logger.info(f"Test metrics (token/BILOU-level): {metrics}")
+    
+    # ADD THIS: Log to CSV
+    exp_name = log_results_to_csv(span_cfg, metrics)
+    logger.info(f"Results saved to CSV as: {exp_name}")

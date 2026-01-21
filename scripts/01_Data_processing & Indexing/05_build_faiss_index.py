@@ -222,6 +222,6 @@ if __name__ == "__main__":
     logger.info(f"FAISS index info file: {index_info_path}")
     logger.info(f"Log file:              {log_path}")
 
-    print(f"📦 FAISS index:      {faiss_index_path}")
-    print(f"ℹ️ Index metadata:   {index_info_path}")
-    print(f"📝 Log saved to:     {log_path}")
+    print(f"FAISS index:      {faiss_index_path}")
+    print(f"Index metadata:   {index_info_path}")
+    print(f"Log saved to:     {log_path}")
