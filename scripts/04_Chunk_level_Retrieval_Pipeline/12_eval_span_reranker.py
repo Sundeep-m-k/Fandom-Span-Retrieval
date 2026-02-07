@@ -67,6 +67,19 @@ from src.utils.logging_utils import create_logger
 
 
 # ----------------------------
+# Config knobs (safe defaults)
+# ----------------------------
+# Keep max_length identical to your current behavior to avoid any metric changes.
+MAX_LENGTH = 320
+
+# Pool eval (A) can have huge pools; batching is essential to avoid OOM.
+POOL_BATCH_SIZE = 8  # safe; increase later if you want
+
+# True-retrieval rerank chunk size (already chunked in your code)
+RERANK_BATCH_SIZE = 32
+
+
+# ----------------------------
 # Metrics helpers
 # ----------------------------
 KS = [1, 3, 5, 10, 100, 1000]
@@ -100,7 +113,6 @@ def compute_ranking_metrics_from_first_pos_rank(ranks_1based, ks=KS):
             mrr10_sum += 1.0 / r
             ndcg10_sum += dcg_at_rank(r)
         else:
-            # MRR@10 adds 0, NDCG@10 adds 0
             pass
 
     if n == 0:
@@ -158,12 +170,54 @@ def load_bi_encoder_name(model_info_path: Path) -> str:
 
 
 # ----------------------------
-# Core: Pool evaluation (your old 12)
+# Cross-encoder scoring helper (batched)
+# ----------------------------
+def rerank_cross_encoder(query, cand_texts, tokenizer, model, device, batch_size=32, max_length=320):
+    """
+    returns: list[float] scores aligned with cand_texts
+    """
+    scores_all = []
+
+    # inference_mode is safe for eval; reduces overhead and memory bookkeeping
+    with torch.inference_mode():
+        for i in range(0, len(cand_texts), batch_size):
+            chunk = cand_texts[i:i + batch_size]
+            batch = tokenizer(
+                [query] * len(chunk),
+                chunk,
+                padding=True,
+                truncation=True,
+                max_length=max_length,
+                return_tensors="pt",
+            )
+            batch = {k: v.to(device) for k, v in batch.items()}
+
+            outputs = model(**batch)
+            logits = outputs.logits
+            if logits.size(-1) == 1:
+                s = logits.squeeze(-1)
+            else:
+                s = logits[:, 1]
+
+            scores_all.extend(s.detach().cpu().tolist())
+
+            # help Python release references promptly (minor, but harmless)
+            del batch, outputs, logits, s
+
+    return scores_all
+
+
+# ----------------------------
+# Core: Pool evaluation (A)
 # ----------------------------
 def eval_pool_only_reranker(by_query, tokenizer, model, device):
     """
     by_query: dict[str, list[rows]] from retrieval_eval jsonl (candidate pool)
     returns: metrics dict, per_query list of dicts
+
+    IMPORTANT CHANGE:
+    - We now score candidates in batches to avoid OOM for large pools.
+    - This does NOT change results (same model, same max_length, same scoring).
     """
     ranks = []
     per_query = []
@@ -174,24 +228,17 @@ def eval_pool_only_reranker(by_query, tokenizer, model, device):
             continue
 
         texts = [str(c.get("text", "")) for c in candidates]
-        with torch.no_grad():
-            batch = tokenizer(
-                [q] * len(texts),
-                texts,
-                padding=True,
-                truncation=True,
-                max_length=320,
-                return_tensors="pt",
-            )
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            logits = outputs.logits
-            # class-1 logit preferred (consistent with your training head)
-            if logits.size(-1) == 1:
-                scores_tensor = logits.squeeze(-1)
-            else:
-                scores_tensor = logits[:, 1]
-            scores = scores_tensor.detach().cpu().tolist()
+
+        # ✅ Batched scoring (prevents OOM). Same max_length as before.
+        scores = rerank_cross_encoder(
+            q,
+            texts,
+            tokenizer,
+            model,
+            device,
+            batch_size=POOL_BATCH_SIZE,
+            max_length=MAX_LENGTH,
+        )
 
         scored = []
         for c, s in zip(candidates, scores):
@@ -239,33 +286,6 @@ def build_faiss_index(span_embs: np.ndarray):
     index = faiss.IndexFlatIP(span_embs.shape[1])
     index.add(span_embs)
     return index
-
-
-def rerank_cross_encoder(query, cand_texts, tokenizer, model, device, batch_size=32, max_length=320):
-    """
-    returns: list[float] scores aligned with cand_texts
-    """
-    scores_all = []
-    with torch.no_grad():
-        for i in range(0, len(cand_texts), batch_size):
-            chunk = cand_texts[i:i + batch_size]
-            batch = tokenizer(
-                [query] * len(chunk),
-                chunk,
-                padding=True,
-                truncation=True,
-                max_length=max_length,
-                return_tensors="pt",
-            )
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch)
-            logits = outputs.logits
-            if logits.size(-1) == 1:
-                s = logits.squeeze(-1)
-            else:
-                s = logits[:, 1]
-            scores_all.extend(s.detach().cpu().tolist())
-    return scores_all
 
 
 def derive_gold_from_pool(by_query):
@@ -366,9 +386,17 @@ def eval_true_retrieval(
 
         # --- Cross-encoder rerank the retrieved spans ---
         cand_texts = [spanid_to_text.get(sid, "") for sid in retrieved_span_ids]
+
         rerank_scores = rerank_cross_encoder(
-            q, cand_texts, rerank_tokenizer, rerank_model, device, batch_size=32, max_length=320
+            q,
+            cand_texts,
+            rerank_tokenizer,
+            rerank_model,
+            device,
+            batch_size=RERANK_BATCH_SIZE,
+            max_length=MAX_LENGTH,
         )
+
         rerank_pairs = list(zip(retrieved_span_ids, retrieved_article_ids, rerank_scores))
         rerank_pairs.sort(key=lambda x: x[2], reverse=True)
 
@@ -447,6 +475,7 @@ def main():
     logger.info(f"Log file: {log_file}")
     logger.info(f"DOMAIN: {domain}")
     logger.info(f"PROCESSED_DIR: {PROCESSED_DIR}")
+    logger.info(f"MAX_LENGTH={MAX_LENGTH}, POOL_BATCH_SIZE={POOL_BATCH_SIZE}, RERANK_BATCH_SIZE={RERANK_BATCH_SIZE}")
 
     # Inputs
     EVAL_JSONL = PROCESSED_DIR / f"retrieval_eval_{domain}.jsonl"

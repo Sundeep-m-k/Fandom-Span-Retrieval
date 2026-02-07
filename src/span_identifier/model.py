@@ -141,10 +141,7 @@ def _compute_metrics(eval_pred):
     }
 
 
-def train_model_from_cfg(span_cfg: dict):
-    """
-    Train a token classification model for BILOU span identification.
-    """
+def train_model_from_cfg(span_cfg: dict) -> None:
     log_dir = Path(span_cfg["log_dir"])
     logger, log_file = create_logger(log_dir, script_name="03_train_span_identifier")
     logger.info("Step 3: Training span identification model")
@@ -169,6 +166,10 @@ def train_model_from_cfg(span_cfg: dict):
 
     out_dir = Path(span_cfg["token_dataset_dir"]).parent / "models" / span_cfg["domain"]
     out_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Optional: TensorBoard directory for offline viz
+    tensorboard_dir = Path(span_cfg.get("tensorboard_dir", out_dir / "tensorboard"))
+    tensorboard_dir.mkdir(parents=True, exist_ok=True)
 
     train_cfg = span_cfg["train"]
 
@@ -176,14 +177,17 @@ def train_model_from_cfg(span_cfg: dict):
         output_dir=str(out_dir),
         do_train=True,
         do_eval=True,
-        # logging
-        logging_dir=str(log_dir),
-        logging_strategy="steps",  # log every logging_steps steps [web:114][web:115]
+        
+        # Logging - all offline
+        logging_dir=str(tensorboard_dir),  # TensorBoard logs (optional)
+        logging_strategy="steps",
         logging_steps=int(train_cfg.get("logging_steps", 50)),
-        # simple step-based eval/save (no evaluation_strategy kw)
+        
+        # Evaluation & saving
         eval_steps=int(train_cfg.get("eval_steps", 500)),
         save_steps=int(train_cfg.get("save_steps", 500)),
-        # optimization
+        
+        # Optimization
         learning_rate=float(train_cfg["learning_rate"]),
         per_device_train_batch_size=int(train_cfg["batch_size"]),
         per_device_eval_batch_size=int(train_cfg["batch_size"]),
@@ -191,7 +195,9 @@ def train_model_from_cfg(span_cfg: dict):
         weight_decay=float(train_cfg["weight_decay"]),
         warmup_ratio=float(train_cfg["warmup_ratio"]),
         seed=int(train_cfg["seed"]),
-        report_to=[],  # or ["wandb"] if enabled
+        
+        # NO external reporting
+        report_to=[],  # empty list = no wandb/tensorboard/mlflow/etc.
     )
 
     trainer = Trainer(
@@ -203,12 +209,68 @@ def train_model_from_cfg(span_cfg: dict):
         compute_metrics=_compute_metrics,
     )
 
+    logger.info("Starting training...")
     trainer.train()
     trainer.save_model(str(out_dir))
-    logger.info(f"Training complete. Best model saved to: {out_dir}")
+    tokenizer.save_pretrained(str(out_dir))
+    logger.info(f"Training complete. Model saved to: {out_dir}")
+def save_experiment_summary(span_cfg: dict, metrics: dict, model_dir: Path):
+    """
+    Save detailed experiment summary as JSON for offline reference.
+    """
+    import json
+    from datetime import datetime
+    
+    results_dir = Path(span_cfg.get("results_dir", "results/span_identification"))
+    results_dir.mkdir(parents=True, exist_ok=True)
+    
+    domain = span_cfg.get("domain", "unknown")
+    model_name = span_cfg.get("model_name", "bert-base-uncased").split("/")[-1]
+    level = span_cfg.get("level", "paragraph")
+    normalize_punct = span_cfg.get("normalize_punctuation", False)
+    punc_str = "punc" if normalize_punct else "no_punc"
+    
+    exp_name = f"{domain}_{model_name}_{level}_{punc_str}"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    summary = {
+        "experiment_name": exp_name,
+        "timestamp": timestamp,
+        "config": {
+            "domain": domain,
+            "model": model_name,
+            "level": level,
+            "normalize_punctuation": normalize_punct,
+            "max_seq_length": span_cfg.get("max_seq_length", 512),
+            "label_scheme": span_cfg.get("label_scheme", "BILOU"),
+            "num_labels": span_cfg.get("num_labels", 5),
+        },
+        "training": span_cfg.get("train", {}),
+        "metrics": metrics,
+        "model_dir": str(model_dir),
+    }
+    
+    summary_file = results_dir / f"{exp_name}_{timestamp}.json"
+    with open(summary_file, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2, ensure_ascii=False)
+    
+    return summary_file
 
 
 def evaluate_model_from_cfg(span_cfg: dict):
+    # ... existing code ...
+    
+    logger.info(f"Test examples: {len(test_ds)}")
+    metrics = trainer.evaluate(eval_dataset=test_ds)
+    logger.info(f"Test metrics (token/BILOU-level): {metrics}")
+    
+    # Log to CSV
+    exp_name = log_results_to_csv(span_cfg, metrics)
+    logger.info(f"Results appended to CSV as: {exp_name}")
+    
+    # Save detailed JSON summary
+    summary_file = save_experiment_summary(span_cfg, metrics, model_dir)
+    logger.info(f"Detailed summary saved to: {summary_file}")
     """
     Evaluate the trained model on the test split and log seqeval F1/precision/recall.
     """

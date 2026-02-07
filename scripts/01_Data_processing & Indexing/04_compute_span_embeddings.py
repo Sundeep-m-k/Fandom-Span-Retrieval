@@ -20,15 +20,12 @@ import logging
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
-
 import numpy as np
 import pandas as pd
 import torch
 from sentence_transformers import SentenceTransformer
 
-
 # ---------------------- CONFIG LOADING ----------------------
-
 
 def load_scraping_config():
     """
@@ -219,7 +216,7 @@ if __name__ == "__main__":
     logger.info(f"Finished 04_compute_span_embeddings in {elapsed:.2f} seconds")
     logger.info(f"Log file: {log_path}")
 
-    print(f"💾 Embeddings:   {spans_npy_path}")
-    print(f"🆔 Index IDs:    {spans_ids_path}")
-    print(f"ℹ️ Model info:   {model_info_path}")
-    print(f"📝 Log saved to: {log_path}")
+    print(f"Embeddings:   {spans_npy_path}")
+    print(f"Index IDs:    {spans_ids_path}")
+    print(f"Model info:   {model_info_path}")
+    print(f"Log saved to: {log_path}")

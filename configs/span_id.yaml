@@ -38,8 +38,3 @@ span_id:
     warmup_ratio: 0.1
     gradient_accumulation_steps: 1
     seed: 42
-
-  logging:
-    use_wandb: false
-    wandb_project: "fandom-span-id"
-    wandb_run_name: "${domain}_deberta_bilou_paragraph"

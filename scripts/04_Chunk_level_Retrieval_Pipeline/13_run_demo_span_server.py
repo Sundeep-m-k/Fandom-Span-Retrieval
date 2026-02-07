@@ -43,13 +43,13 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
-DOMAIN = "money-heist"
+DOMAIN = "mon"
 TOP_K = 10            # how many candidates from FAISS
 SHOW_K = 5            # how many to display in the console
 
-PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
-EMB_DIR = PROJECT_ROOT / "data" / "embeddings"
-IDX_DIR = PROJECT_ROOT / "data" / "indexes"
+PROCESSED_DIR = PROJECT_ROOT / "data" / "processed" / DOMAIN
+EMB_DIR = PROJECT_ROOT / "data" / "embeddings" / DOMAIN
+IDX_DIR = PROJECT_ROOT / "data" / "indexes" / DOMAIN
 MODEL_DIR = PROJECT_ROOT / "models" / "reranker" / DOMAIN / "best"
 
 SPAN_CSV = PROCESSED_DIR / f"spans_{DOMAIN}.csv"

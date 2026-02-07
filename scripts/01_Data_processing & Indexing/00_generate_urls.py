@@ -23,18 +23,14 @@ Example configs/scraping.yaml:
       - "https://money-heist.fandom.com/wiki/Category:Locations"
 
 """
-
-import os
 import sys
 import time
 import logging
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit, unquote, urlparse
-
 import requests
 from bs4 import BeautifulSoup
-
 # Global logger (configured in main)
 logger = logging.getLogger("00_generate_urls")
 
@@ -335,5 +331,5 @@ if __name__ == "__main__":
     logger.info(f"URL list: {output_path}")
     logger.info(f"Log file: {log_path}")
 
-    print(f"📂 Saved URL list to: {output_path}")
-    print(f"📝 Log saved to: {log_path}")
+    print(f"Saved URL list to: {output_path}")
+    print(f"Log saved to: {log_path}")

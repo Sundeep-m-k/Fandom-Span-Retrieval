@@ -579,6 +579,6 @@ if __name__ == "__main__":
     logger.info(f"Per-page sections dir: {per_page_dir}")
     logger.info(f"Log file: {log_path}")
 
-    print(f"📄 Master sections written to: {out_path}")
-    print(f"📂 Per-page sections written under: {per_page_dir}")
-    print(f"📝 Log saved to: {log_path}")
+    print(f"Master sections written to: {out_path}")
+    print(f"Per-page sections written under: {per_page_dir}")
+    print(f"Log saved to: {log_path}")

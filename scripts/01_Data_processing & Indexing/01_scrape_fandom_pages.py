@@ -310,4 +310,4 @@ if __name__ == "__main__":
     logger.info(f"Finished 01_scrape_fandom_pages in {elapsed:.2f} seconds")
     logger.info(f"Log file: {log_path}")
 
-    print(f"📝 Log saved to: {log_path}")
+    print(f"Log saved to: {log_path}")
